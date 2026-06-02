@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="DOT"/>
+  <meta name="theme-color" content="#FFFFFF"/>
+  <title>DOT — Do One Thing</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { background:#FFFFFF; overflow:hidden; position:fixed; width:100%; height:100%; }
+    #root { width:100%; height:100%; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const URGENCY = {
+  red:   { label: "URGENT",  color: "#FF2A00", bg: "#FF2A0012" },
+  amber: { label: "SOON",    color: "#FFB800", bg: "#FFB80012" },
+  green: { label: "PLANNED", color: "#00E676", bg: "#00E67612" },
+};
+
+const INITIAL_TASKS = [
+
+  // ── WORK ────────────────────────────────────────────────────────────────────
+  { id:1001, category:"Work", title:"CV script", urgency:"red", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:100101,text:"CV pif",done:false},{id:100102,text:"CV damac",done:false}]},
+  { id:1003, category:"Work", title:"ARB + RIBA", urgency:"amber", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:100301,text:"Check ARB registration status",done:false},{id:100302,text:"Check RIBA membership status",done:false},{id:100303,text:"Renew or action as required",done:false}]},
+  { id:1004, category:"Work", title:"Update multi re-entry 180 days", urgency:"red", deadline:"2026-06-01", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:["Saudi premium residency"],
+    subactions:[{id:100401,text:"Confirm current multi-entry visa status",done:false},{id:100402,text:"Apply to extend to 180 days",done:false},{id:100403,text:"Confirm updated entry stamp",done:false}]},
+  { id:1005, category:"Work", title:"Saudi premium residency", urgency:"red", deadline:"2026-06-01", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:["Multi re-entry 180 days"],
+    subactions:[{id:100501,text:"Confirm premium residency eligibility",done:false},{id:100502,text:"Gather supporting documents",done:false},{id:100503,text:"Submit application",done:false}]},
+  { id:1006, category:"Work", title:"Fruitbloom structure strategy", urgency:"amber", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:["Fruitbloom"],
+    subactions:[{id:100601,text:"Draft structure and strategy document",done:false},{id:100602,text:"Review with stakeholders",done:false}]},
+  { id:1007, category:"Work", title:"DOT ToDo script", urgency:"amber", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:100701,text:"Draft script for Do One Thing app",done:false},{id:100702,text:"Review and finalise",done:false}]},
+  { id:1008, category:"Work", title:"SSS script — spending saving strategy", urgency:"amber", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:100801,text:"Draft SSS script",done:false},{id:100802,text:"Review and finalise",done:false}]},
+  { id:1009, category:"Work", title:"Baby finance script", urgency:"amber", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:["Caro"], linked:[],
+    subactions:[{id:100901,text:"Draft baby finance planning script",done:false},{id:100902,text:"Review with Caro",done:false}]},
+
+  // ── PERSONAL ────────────────────────────────────────────────────────────────
+  { id:2001, category:"Personal", title:"Doctor — book all appointments", urgency:"red", deadline:"2026-06-01", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:200101,text:"Book skin doctor",done:false},{id:200102,text:"Book physiotherapist / X-ray",done:false},{id:200103,text:"Book doctor — Cholorectal",done:false},{id:200104,text:"Book doctor — PSA test",done:false},{id:200105,text:"Add all appointments to calendar",done:false}]},
+  { id:2002, category:"Personal", title:"Dubai driving licence", urgency:"red", deadline:"2026-07-01", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:200201,text:"Check docs required to convert UK licence",done:false},{id:200202,text:"Book RTA appointment",done:false},{id:200203,text:"Attend with docs + UK licence",done:false},{id:200204,text:"Collect Dubai driving licence",done:false}]},
+  { id:2003, category:"Personal", title:"Pillow Caro nursing", urgency:"red", deadline:"2026-06-15", done:false, blocker:"", blockerSuggestion:"", involved:["Caro"], linked:[],
+    subactions:[{id:200301,text:"Research best nursing pillow",done:false},{id:200302,text:"Order nursing pillow",done:false},{id:200303,text:"Confirm delivery",done:false}]},
+  { id:2004, category:"Personal", title:"Stem cell Dubai enquiry", urgency:"red", deadline:"2026-07-01", done:false, blocker:"", blockerSuggestion:"Search 'cord blood banking Dubai' — Cryo-Save and HealthBaby are main providers", involved:["Caro"], linked:[],
+    subactions:[{id:200401,text:"Research stem cell banking providers in Dubai",done:false},{id:200402,text:"Compare costs and collection process",done:false},{id:200403,text:"Select provider and register before birth",done:false},{id:200404,text:"Confirm kit delivery to hospital",done:false}]},
+  { id:2005, category:"Personal", title:"Oven purchase KSA", urgency:"amber", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:200501,text:"Confirm oven spec and size required",done:false},{id:200502,text:"Purchase oven",done:false},{id:200503,text:"Arrange delivery / installation",done:false}]},
+  { id:2006, category:"Personal", title:"Bike seat", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:200601,text:"Research suitable bike seat for baby",done:false},{id:200602,text:"Order bike seat",done:false}]},
+  { id:2007, category:"Personal", title:"Bike licence — tutorials, test, lessons", urgency:"green", deadline:"2026-06-30", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:200701,text:"Complete learning tutorials online",done:false},{id:200702,text:"Complete bike test online",done:false},{id:200703,text:"Agree lessons 6–13 June",done:false},{id:200704,text:"Book bike lessons",done:false}]},
+  { id:2008, category:"Personal", title:"Kite lessons", urgency:"green", deadline:"2026-06-13", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:200801,text:"Contact kite and surf school",done:false},{id:200802,text:"Agree lessons 6–13 June",done:false},{id:200803,text:"Book and pay",done:false}]},
+  { id:2009, category:"Personal", title:"Guitar lessons", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:200901,text:"Find guitar teacher or app",done:false},{id:200902,text:"Book first lesson",done:false}]},
+  { id:2010, category:"Personal", title:"Language lessons", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:201001,text:"Choose language and method",done:false},{id:201002,text:"Book first lesson",done:false}]},
+  { id:2011, category:"Personal", title:"Brew kit", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:201101,text:"Research home brew kit options",done:false},{id:201102,text:"Order kit",done:false}]},
+
+  // ── ACCOUNTS ────────────────────────────────────────────────────────────────
+  { id:3001, category:"Accounts", title:"Pay CT £551", urgency:"green", deadline:"2026-05-20", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:300101,text:"Log in to HMRC online account",done:false},{id:300102,text:"Pay £551 via bank transfer",done:false},{id:300103,text:"Save confirmation",done:false}]},
+  { id:3002, category:"Accounts", title:"Pay fine £980.71 ref 2132813959A00108A", urgency:"green", deadline:"2026-05-20", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:300201,text:"Identify correct payment portal",done:false},{id:300202,text:"Pay £980.71 with reference",done:false},{id:300203,text:"Save receipt",done:false}]},
+  { id:3003, category:"Accounts", title:"Pay YA CTax £1,611.77", urgency:"green", deadline:"2026-05-25", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:300301,text:"Log into council tax account",done:false},{id:300302,text:"Pay £1,611.77",done:false},{id:300303,text:"Save confirmation email",done:false}]},
+  { id:3004, category:"Accounts", title:"Caro USD 15.85 + 25.9", urgency:"green", deadline:"2026-05-15", done:false, blocker:"", blockerSuggestion:"", involved:["Caro"], linked:[],
+    subactions:[{id:300401,text:"Transfer $15.85 USD to Caro",done:false},{id:300402,text:"Transfer $25.90 USD to Caro",done:false},{id:300403,text:"Confirm receipt",done:false}]},
+  { id:3005, category:"Accounts", title:"Payments — accountant, CRGH, Berry, savings", urgency:"red", deadline:"2026-06-01", done:false, blocker:"", blockerSuggestion:"", involved:["Accountant","Berry"], linked:[],
+    subactions:[{id:300501,text:"Pay accountant YA — request invoice first",done:false},{id:300502,text:"Pay CRGH £3k GBP",done:false},{id:300503,text:"Pay Berry 96HR £8k GBP",done:false},{id:300504,text:"Pay baby stuff $3k USD",done:false},{id:300505,text:"Pay kids saving Roup $12k USD",done:false},{id:300506,text:"Pay kids saving Caro $6k USD",done:false},{id:300507,text:"Pay HMRC backdated pension £4k GBP",done:false},{id:300508,text:"Pay facade refurb £20k GBP",done:false},{id:300509,text:"Pay pension savings $50k USD",done:false}]},
+  { id:3006, category:"Accounts", title:"Tax advice — appoint advisor + full brief", urgency:"green", deadline:"2026-07-31", done:false, blocker:"", blockerSuggestion:"", involved:["Tax advisor"], linked:["Portfolio Bond"],
+    subactions:[{id:300601,text:"Source advisors shortlist — 3 candidates",done:false},{id:300602,text:"Select advisor",done:false},{id:300603,text:"Appoint advisor",done:false},{id:300604,text:"Sell flat — tax impact",done:false},{id:300605,text:"Invest in ETF long term IHT/Tax",done:false},{id:300606,text:"Pension withdrawal tax impact",done:false},{id:300607,text:"Close company — withdraw funds tax impact",done:false},{id:300608,text:"Portfolio bond advice",done:false},{id:300609,text:"Company adding",done:false},{id:300610,text:"IHT advice",done:false}]},
+
+  // ── POWIS ────────────────────────────────────────────────────────────────────
+  { id:4001, category:"Powis", title:"Transfer storage costs DD to Santander", urgency:"amber", deadline:"2026-06-01", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:400101,text:"Log into storage account — update DD to Santander",done:false},{id:400102,text:"Log into broadband account — update DD to Santander",done:false},{id:400103,text:"Confirm both DDs showing on Santander",done:false}]},
+  { id:4002, category:"Powis", title:"Powis insurance Churchill", urgency:"red", deadline:"2026-05-31", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:400201,text:"Locate Churchill policy number",done:false},{id:400202,text:"Confirm policy is active and covers rental use",done:false},{id:400203,text:"Set calendar renewal reminder",done:false}]},
+  { id:4003, category:"Powis", title:"Powis rent protection", urgency:"red", deadline:"2026-06-15", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:400301,text:"Research rent protection + legal cover providers",done:false},{id:400302,text:"Get 3 quotes",done:false},{id:400303,text:"Purchase policy",done:false},{id:400304,text:"File policy documents",done:false}]},
+  { id:4004, category:"Powis", title:"KF spike fire alarms", urgency:"red", deadline:"2026-05-31", done:false, blocker:"", blockerSuggestion:"", involved:["Knight Frank"], linked:[],
+    subactions:[{id:400401,text:"Contact Knight Frank re fire alarm status",done:false},{id:400402,text:"Confirm alarms tested and compliant",done:false},{id:400403,text:"Get written confirmation",done:false}]},
+  { id:4005, category:"Powis", title:"Cancel internet", urgency:"red", deadline:"2026-06-01", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:400501,text:"Contact internet provider to cancel",done:false},{id:400502,text:"Confirm cancellation date and any fees",done:false},{id:400503,text:"Return any equipment if required",done:false}]},
+
+  // ── HOLLAND ──────────────────────────────────────────────────────────────────
+  { id:5001, category:"Holland", title:"HR facade repair front and back £20,000", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:500101,text:"Get contractor quotes for front facade",done:false},{id:500102,text:"Get contractor quotes for back facade",done:false},{id:500103,text:"Select contractor and agree date",done:false},{id:500104,text:"Pay deposit and schedule works",done:false},{id:500105,text:"Sign off completed works",done:false}]},
+  { id:5002, category:"Holland", title:"Tax advisory company ownership", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:["Tax advisor"], linked:[],
+    subactions:[{id:500201,text:"Engage tax advisor on company ownership structure",done:false},{id:500202,text:"Review recommendation",done:false},{id:500203,text:"Implement advised structure",done:false}]},
+  { id:5003, category:"Holland", title:"Claims Freeholder", urgency:"red", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:["Freeholder"], linked:[],
+    subactions:[{id:500301,text:"Zen Kitchen sink unblock claim",done:false},{id:500302,text:"Zen Leak claim",done:false}]},
+  { id:5004, category:"Holland", title:"Berry close out", urgency:"red", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:["Berry","Apex"], linked:[],
+    subactions:[{id:500401,text:"Final payment to Berry",done:false},{id:500402,text:"Agree drainage with Apex & Berry",done:false},{id:500403,text:"Complete internal decoration",done:false},{id:500404,text:"Fix internet",done:false}]},
+  { id:5005, category:"Holland", title:"Knight Frank hand over", urgency:"amber", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:["Knight Frank","Houst"], linked:[],
+    subactions:[{id:500501,text:"Cancel contract with Houst end of May",done:false},{id:500502,text:"New agents x3 keys set",done:false},{id:500503,text:"Agree and sign contract with KF",done:false},{id:500504,text:"Issue certificates",done:false},{id:500505,text:"Insurance required for rental or building and contents",done:false},{id:500506,text:"Install new meters end of life?",done:false},{id:500507,text:"Install smart meter?",done:false},{id:500508,text:"Cancel bills",done:false}]},
+  { id:5006, category:"Holland", title:"Furniture", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:500601,text:"Bathroom bench Muji",done:false},{id:500602,text:"Dining bench",done:false},{id:500603,text:"Muji bed frame timber joist",done:false}]},
+  { id:5007, category:"Holland", title:"Leasehold extension", urgency:"red", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:["Solicitor","Freeholder"], linked:[],
+    subactions:[{id:500701,text:"Proof of completion",done:false},{id:500702,text:"Updated on land registry",done:false}]},
+
+  // ── BIRCHFIELDS ──────────────────────────────────────────────────────────────
+  { id:6001, category:"Birchfields", title:"Inheritance Tax advice 51BR", urgency:"red", deadline:"2026-06-01", done:false, blocker:"", blockerSuggestion:"", involved:["Tax advisor"], linked:[],
+    subactions:[{id:600101,text:"Book IHT advice session for 51 Birchfields",done:false},{id:600102,text:"Prepare all ownership and valuation documents",done:false},{id:600103,text:"Attend session and receive recommendations",done:false},{id:600104,text:"Implement advice",done:false}]},
+  { id:6002, category:"Birchfields", title:"HMO licensing spot check by MCC scheduled", urgency:"red", deadline:"2026-05-20", done:false, blocker:"", blockerSuggestion:"Start with HMO licensing — highest regulatory risk before MCC visit", involved:["MCC"], linked:[],
+    subactions:[{id:600201,text:"Check HMO licensing status 2018–2028",done:false},{id:600202,text:"Ensure all compliance documents are ready",done:false},{id:600203,text:"Confirm property meets current HMO standards",done:false},{id:600204,text:"Prepare for MCC spot check",done:false}]},
+  { id:6003, category:"Birchfields", title:"Thornley Groves — Mia contract + fire doors", urgency:"green", deadline:"2026-06-30", done:false, blocker:"", blockerSuggestion:"", involved:["Mia","Nazia TG"], linked:[],
+    subactions:[{id:600301,text:"Mia — track and issue 10-year contract",done:false},{id:600302,text:"Mia — confirm 10 years HMO sufficient",done:false},{id:600303,text:"Nazia — finalise fire doors",done:false},{id:600304,text:"Nazia — confirm missing payments",done:false}]},
+
+  // ── JUMEIRAH ─────────────────────────────────────────────────────────────────
+  { id:7001, category:"Jumeirah", title:"JVT refurb", urgency:"green", deadline:"2026-06-30", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:700101,text:"Resolve building control issues",done:false},{id:700102,text:"Sort building and contents insurance",done:false},{id:700103,text:"Book Baxab topcoat and colour application",done:false}]},
+  { id:7002, category:"Jumeirah", title:"Home improvements", urgency:"green", deadline:"2026-06-30", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:700201,text:"Fix wall damp to entrance",done:false},{id:700202,text:"Hang up garden canopy",done:false},{id:700203,text:"Reset garden water timer",done:false},{id:700204,text:"Baby proof house",done:false}]},
+  { id:7003, category:"Jumeirah", title:"New wardrobe Artwood", urgency:"green", deadline:"2026-07-31", done:false, blocker:"", blockerSuggestion:"", involved:["Artwood"], linked:[],
+    subactions:[{id:700301,text:"Agree samples",done:false},{id:700302,text:"Agree installation date",done:false},{id:700303,text:"Install wardrobe",done:false},{id:700304,text:"Fix kitchen",done:false},{id:700305,text:"Make final payment",done:false}]},
+
+  // ── BABY ─────────────────────────────────────────────────────────────────────
+  { id:8001, category:"Baby", title:"Registrations", urgency:"amber", deadline:"2026-07-01", done:false, blocker:"", blockerSuggestion:"", involved:["Caro"], linked:[],
+    subactions:[{id:800101,text:"Register marriage",done:false},{id:800102,text:"Check UK citizenship and passport for baby",done:false},{id:800103,text:"Check Belgian citizenship and passport for baby",done:false},{id:800104,text:"Birth certificate from Dubai authority",done:false},{id:800105,text:"Passport",done:false},{id:800106,text:"Register child at school",done:false},{id:800107,text:"Attested marriage certificate",done:false}]},
+  { id:8002, category:"Baby", title:"Baby stuff — full kit", urgency:"green", deadline:"2026-06-15", done:false, blocker:"", blockerSuggestion:"", involved:["Caro"], linked:[],
+    subactions:[{id:800201,text:"Order day bag",done:false},{id:800202,text:"Order baby change table",done:false},{id:800203,text:"Order nappy bin",done:false},{id:800204,text:"Order breast pump",done:false},{id:800205,text:"Order milk warmer",done:false},{id:800206,text:"Order new born cot",done:false},{id:800207,text:"Order baby carrier",done:false},{id:800208,text:"Order baby protection",done:false},{id:800209,text:"Order play pen",done:false},{id:800210,text:"Order play matts",done:false},{id:800211,text:"Order bouncy chair",done:false}]},
+  { id:8003, category:"Baby", title:"Hospital stuff", urgency:"green", deadline:"2026-06-30", done:false, blocker:"", blockerSuggestion:"", involved:["Caro"], linked:[],
+    subactions:[{id:800301,text:"Pack hospital go bag",done:false},{id:800302,text:"Confirm hospital plan with Caro",done:false}]},
+
+  // ── FRUITBLOOM ────────────────────────────────────────────────────────────────
+  { id:9001, category:"Fruitbloom", title:"Administration", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:900101,text:"Company structure",done:false},{id:900102,text:"Company location",done:false},{id:900103,text:"Register company",done:false},{id:900104,text:"Register website",done:false}]},
+  { id:9002, category:"Fruitbloom", title:"Fix concept", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:900201,text:"Feel the flavour",done:false},{id:900202,text:"1. Appetising moorish great taste",done:false},{id:900203,text:"2. Physical reaction stimulating",done:false},{id:900204,text:"3. Enhancing Mood naturally",done:false},{id:900205,text:"4. Unusual but familiar — classically trendy",done:false},{id:900206,text:"5. Healthy for the mind and body — full of goodness",done:false}]},
+  { id:9003, category:"Fruitbloom", title:"Ingredients", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:900301,text:"Research and define core ingredients",done:false}]},
+  { id:9004, category:"Fruitbloom", title:"Sourcing", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:900401,text:"Identify and agree suppliers",done:false}]},
+  { id:9005, category:"Fruitbloom", title:"Recipes", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:900501,text:"Develop and test prototype recipes",done:false}]},
+  { id:9006, category:"Fruitbloom", title:"Process", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:900601,text:"Pressed",done:false},{id:900602,text:"Steeped",done:false},{id:900603,text:"Infused",done:false}]},
+  { id:9007, category:"Fruitbloom", title:"Moats", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:900701,text:"Identify and document competitive moats",done:false}]},
+  { id:9008, category:"Fruitbloom", title:"Differentiator", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:900801,text:"Define key differentiators vs competitors",done:false}]},
+  { id:9009, category:"Fruitbloom", title:"Full sensory taste smell sound touch sight", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:900901,text:"Champagne bubbles",done:false},{id:900902,text:"Dual aroma",done:false},{id:900903,text:"Processing pressed steeped cold/hot",done:false}]},
+  { id:9010, category:"Fruitbloom", title:"Packaging", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:901001,text:"Define packaging brief and source supplier",done:false}]},
+  { id:9011, category:"Fruitbloom", title:"Distribution", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:901101,text:"Map distribution channels",done:false}]},
+  { id:9012, category:"Fruitbloom", title:"Manufacturing", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:901201,text:"Research manufacturing options",done:false}]},
+  { id:9013, category:"Fruitbloom", title:"Sales", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:901301,text:"Draft sales strategy",done:false}]},
+  { id:9014, category:"Fruitbloom", title:"Marketing", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:901401,text:"Define marketing approach",done:false}]},
+  { id:9015, category:"Fruitbloom", title:"Branding", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:901501,text:"Brief branding designer",done:false}]},
+
+  // ── PORTFOLIO ─────────────────────────────────────────────────────────────────
+  { id:10001, category:"Portfolio", title:"Appoint tax advisor", urgency:"red", deadline:"2026-06-01", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:["Portfolio Bond"],
+    subactions:[{id:1000101,text:"Find 3 UK expat / property tax advisors",done:false},{id:1000102,text:"Book intro calls with all 3",done:false},{id:1000103,text:"Evaluate IHT, structure, pension, bond expertise",done:false},{id:1000104,text:"Select and appoint",done:false}]},
+  { id:10002, category:"Portfolio", title:"Portfolio Bond UK £250–300k", urgency:"amber", deadline:"2026-07-31", done:false, blocker:"Needs tax advice first", blockerSuggestion:"Appoint advisor first — bond structure depends on IHT advice", involved:["Tax advisor","C360"], linked:[],
+    subactions:[{id:1000201,text:"Finalise bond strategy with advisor",done:false},{id:1000202,text:"Confirm initial capital £250–300k",done:false},{id:1000203,text:"Due diligence on C360",done:false},{id:1000204,text:"Minimise management costs — remove middle man",done:false},{id:1000205,text:"Sign up with provider",done:false},{id:1000206,text:"Transfer funds",done:false}]},
+  { id:10003, category:"Portfolio", title:"IHT, pension, ETF tax modelling", urgency:"amber", deadline:"2026-07-31", done:false, blocker:"Advisor not yet appointed", blockerSuggestion:"Once appointed, send this full list as a single agenda", involved:["Tax advisor"], linked:[],
+    subactions:[{id:1000301,text:"Model: sell flat — tax impact",done:false},{id:1000302,text:"Model: close company + withdraw funds",done:false},{id:1000303,text:"Model: invest ETF — IHT long-term",done:false},{id:1000304,text:"Model: pension withdrawal tax impact",done:false},{id:1000305,text:"Get IHT advice on full estate",done:false}]},
+
+  // ── BRAINDUMP ─────────────────────────────────────────────────────────────────
+  { id:11001, category:"Braindump", title:"3 days of the condor", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:1100101,text:"Find on streaming or rent",done:false},{id:1100102,text:"Watch",done:false}]},
+  { id:11002, category:"Braindump", title:"Belt 2 — brown and blue", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:1100201,text:"Order brown belt",done:false},{id:1100202,text:"Order blue belt",done:false}]},
+  { id:11003, category:"Braindump", title:"Casual trousers Loro Piana", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:1100301,text:"Find and order Loro Piana casual trousers",done:false}]},
+  { id:11004, category:"Braindump", title:"Bitcoin mining with excess energy", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:1100401,text:"Research feasibility and hardware costs",done:false},{id:1100402,text:"Identify excess energy source",done:false},{id:1100403,text:"Model ROI vs cost",done:false}]},
+  { id:11005, category:"Braindump", title:"Hector Garcia Ikigai", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:1100501,text:"Download or order the book",done:false},{id:1100502,text:"Block 30 mins daily reading",done:false}]},
+  { id:11006, category:"Braindump", title:"Dr Ken Mogi", urgency:"green", deadline:"", done:false, blocker:"", blockerSuggestion:"", involved:[], linked:[],
+    subactions:[{id:1100601,text:"Find Dr Ken Mogi contact / specialty",done:false},{id:1100602,text:"Book if relevant",done:false}]},
+];
+
+const DEFAULT_CATEGORIES = ["Work","Personal","Accounts","Powis","Holland","Birchfields","Jumeirah","Baby","Fruitbloom","Portfolio","Braindump"];
+const CAT_ICONS = { Work:"WRK", Personal:"PRS", Accounts:"ACC", Powis:"PWS", Holland:"HOL", Birchfields:"BCH", Jumeirah:"JUM", Baby:"BBY", Fruitbloom:"FBL", Portfolio:"PRT", Braindump:"BDP" };
+const mono = "'Share Tech Mono','Courier New',monospace";
+
+function daysUntil(d) {
+  if (!d) return null;
+  return Math.ceil((new Date(d) - new Date()) / 86400000);
+}
+
+function DeadlineBadge({ d }) {
+  const days = daysUntil(d);
+  if (days === null) return null;
+  const label = days < 0 ? "overdue" : days === 0 ? "today" : `${days} days`;
+  return <span style={{ fontFamily:mono, fontSize:10, fontWeight:700, color:"#999999", border:"1px solid #D0D0D0", padding:"1px 7px", letterSpacing:1 }}>{label}</span>;
+}
+
+function generateSteps(title, category) {
+  const t = title.toLowerCase();
+  if (/schedule|programme|roadmap|launch|plan|timeline|milestone/.test(t)) return ["Agree a target launch or completion date","Define key milestones and deliverables","Identify go/no-go decision points","Break milestones into primary and secondary tasks with owners","Map dependencies and linked tasks","Review feasibility and confirm date is realistic"];
+  if (/buy|purchas|order|shop|gift|ring|jewel|watch|cloth|trouser|belt|suit|dress/.test(t)) return ["Define exactly what you are looking for and budget","Research options and shortlist top 3 choices","Visit or browse to compare in person or online","Make the purchase","Confirm delivery or collection and keep receipt"];
+  if (/call|discuss|speak|catch.?up|meeting|chat|talk|contact|reach.?out/.test(t)) return ["Confirm a convenient time with the other person","Prepare key points or agenda for the conversation","Make the call or attend the meeting","Note any actions or decisions agreed","Follow up on any commitments made"];
+  if (/shower|party|event|celebrat|organis|gather|occasion|wedding|engag/.test(t)) return ["Agree date, time and venue with key people","Create guest list and send invitations","Plan food, drinks and any decorations","Arrange any gifts, activities or entertainment","Confirm all bookings and communicate final details"];
+  if (/pay|payment|invoice|tax|budget|savings|finance|fund|pension|accountant/.test(t)) return ["Gather all relevant financial documents and references","Confirm the exact amount and payment details","Make the payment or transfer","Save confirmation and update financial records","Set reminder for next payment or review date"];
+  if (/contract|lease|legal|register|sign|solicitor|agreement|extension/.test(t)) return ["Review all documents and confirm terms are correct","Identify all required signatures and parties","Execute the agreement and obtain signed copies","File originals and distribute copies to all parties","Update relevant records and set review/renewal reminder"];
+  if (/insur|policy|cover|protection|churchill/.test(t)) return ["Identify current policy details and coverage gaps","Get at least 3 comparison quotes","Select the best value policy for your needs","Purchase policy and save all documents","Set renewal reminder and share details with relevant parties"];
+  if (/repair|renovate|refurb|facade|build|construct|install|plumb|electr/.test(t)) return ["Define full scope of works required","Get minimum 3 contractor quotes","Check credentials and references of preferred contractor","Agree start date, timeline and payment schedule","Supervise works and sign off on completion"];
+  if (/hand.?over|handover|agent|letting|rental|tenant|knight frank/.test(t)) return ["Prepare all property documents and certificates","Brief agent on property details and requirements","Agree terms, fees and management scope","Sign contract and transfer keys","Set up communication process for ongoing management"];
+  if (/cv|resume|job|application|interview|career|apply|recruit/.test(t)) return ["Update CV with latest experience and achievements","Tailor CV and covering letter to the specific role","Research the organisation and role requirements","Submit application via correct channel","Follow up if no response within 2 weeks"];
+  if (/book|appoint|doctor|physio|dentist|medical|health|clinic|hospital/.test(t)) return ["Find the correct contact number or booking link","Call or book online at earliest availability","Confirm appointment details and add to calendar","Prepare any relevant notes or questions beforehand","Attend and follow up on any recommendations"];
+  if (/strateg|business|struct|concept|brand|market|sales|distribut|manufactur/.test(t)) return ["Define the objective and desired outcome clearly","Research best practice and competitor approaches","Draft initial framework or structure","Review with key stakeholders and refine","Finalise and agree implementation plan with timeline"];
+  if (/register|company|website|domain|set.?up|incorporat/.test(t)) return ["Research requirements and choose the right vehicle","Gather all required information and documents","Complete registration process","Confirm registration and save all documentation","Set up any linked accounts or services needed"];
+  if (/research|source|find|identify|investigat|compare|shortlist/.test(t)) return ["Define exactly what you are looking for and success criteria","Identify 3-5 potential options or sources","Evaluate each option against your criteria","Select the best option and note reasons","Proceed with next action based on findings"];
+  if (/transfer|move|organis|sort|complet|action|close.?out/.test(t)) return ["Confirm all details and prerequisites are in place","Take the primary action required","Verify the action has been completed correctly","Notify any relevant parties","File confirmation and update records"];
+  const catSteps = {
+    "Work":        ["Define the goal and deliverable clearly","Research and gather required information","Draft or execute the work","Review and quality check","Submit or deliver and follow up"],
+    "Personal":    ["Set a specific date to complete this","Gather what you need to get started","Take the first action","Complete remaining steps","Confirm done and move on"],
+    "Accounts":    ["Gather all relevant financial information","Confirm amounts, references and account details","Execute the payment or transaction","Save confirmation and receipt","Update records and set next reminder"],
+    "Powis":       ["Confirm current status of the issue","Identify what action is needed","Take or arrange the action","Confirm completion with any relevant parties","Update records and file confirmation"],
+    "Holland":     ["Confirm current status of the issue","Identify contractor or party needed","Agree scope, cost and timing","Execute the action","Confirm completion and update records"],
+    "Birchfields": ["Review current compliance status","Identify any gaps or risks","Take corrective action","Confirm completion with relevant parties","Update records and set next review"],
+    "Jumeirah":    ["Confirm what is needed and by when","Gather required documents or materials","Complete the primary action","Verify completion","Update records and notify relevant parties"],
+    "Baby":        ["Research the best option","Order or book as required","Confirm delivery or appointment","Prepare or set up as needed","Mark complete"],
+    "Fruitbloom":  ["Define the objective for this task","Research best practice in this area","Draft an initial approach or plan","Review and refine","Agree next steps and implement"],
+    "Portfolio":   ["Gather relevant financial and legal information","Consult with advisor if required","Evaluate options against objectives","Make a decision and take action","Document and file outcome"],
+    "Braindump":   ["Research this topic further","Decide if and when to act","Define the first action if proceeding","Schedule time to complete it","Review outcome"],
+  };
+  return catSteps[category] || ["Define what done looks like for this task","Identify the first action needed","Complete the primary action","Review and confirm it is done correctly","File or communicate the outcome"];
+}
+
+function TaskModal({ task, defaultCat, categories, onCategoriesChange, onRenameCategory, allTasks, onSave, onDelete, onClose }) {
+  const isEdit = !!task;
+  const [form, setForm] = useState(isEdit ? {
+    title:task.title, category:task.category, urgency:task.urgency,
+    deadline:task.deadline||"", blocker:task.blocker||"",
+    involved:Array.isArray(task.involved)?task.involved.join(", "):(task.involved||""),
+    linked:Array.isArray(task.linked)?task.linked.join(", "):(task.linked||""),
+  } : { title:"", category:defaultCat||categories[0], urgency:"amber", deadline:"", blocker:"", involved:"", linked:"" });
+  const [steps, setSteps] = useState(isEdit ? task.subactions.map(s=>({...s})) : []);
+  const [newStep, setNewStep] = useState("");
+  const [linkedInput, setLinkedInput] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [catMode, setCatMode] = useState(null);
+  const [catInput, setCatInput] = useState("");
+  const [renamingCat, setRenamingCat] = useState("");
+
+  function addCategory() {
+    const name = catInput.trim();
+    if (!name || categories.includes(name)) return;
+    onCategoriesChange([...categories, name]);
+    setForm(p=>({...p, category:name}));
+    setCatMode(null);
+    setCatInput("");
+  }
+
+  function renameCategory() {
+    const name = catInput.trim();
+    if (!name || name === renamingCat) { setCatMode(null); return; }
+    onCategoriesChange(categories.map(c => c===renamingCat ? name : c));
+    onRenameCategory(renamingCat, name);
+    setForm(p=>({...p, category: p.category===renamingCat ? name : p.category}));
+    setCatMode(null);
+    setCatInput("");
+    setRenamingCat("");
+  }
+
+  function breakdown(titleOverride) {
+    const title = (titleOverride !== undefined ? titleOverride : form.title).trim();
+    if (!title) return;
+    const generated = generateSteps(title, form.category);
+    setSteps(generated.map((s,i) => ({ id: Date.now()+i+1, text: s, done: false })));
+  }
+
+  function handleTitleBlur() {
+    if (!isEdit && form.title.trim() && steps.length === 0) {
+      breakdown(form.title);
+    }
+  }
+
+  function submit() {
+    if (!form.title.trim()) return;
+    onSave({
+      ...(isEdit ? task : { id:Date.now(), done:false, blockerSuggestion:"" }),
+      ...form,
+      involved: form.involved ? form.involved.split(",").map(s=>s.trim()).filter(Boolean) : [],
+      linked: form.linked ? form.linked.split(",").map(s=>s.trim()).filter(Boolean) : [],
+      subactions: steps,
+    });
+  }
+
+  const inp = { width:"100%", background:"#FFF", border:"1px solid #D0D0D0", padding:"9px 11px", color:"#1A1A1A", fontSize:13, fontFamily:mono, boxSizing:"border-box", outline:"none", marginBottom:10, borderRadius:0 };
+  const lbl = { fontSize:10, color:"#999999", marginBottom:4, display:"block", fontWeight:700, textTransform:"uppercase", letterSpacing:2, fontFamily:mono };
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(255,255,255,0.95)", zIndex:300, display:"flex", alignItems:"flex-end" }}
+      onClick={e => e.target===e.currentTarget && onClose()}>
+      <div style={{ background:"#FFFFFF", borderTop:"1px solid #D0D0D0", width:"100%", maxWidth:430, margin:"0 auto", maxHeight:"92vh", overflowY:"auto", padding:"18px 16px 44px" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18, borderBottom:"1px solid #D0D0D0", paddingBottom:14 }}>
+          <span style={{ fontFamily:mono, fontSize:11, color:"#AAAAAA", letterSpacing:3 }}>{isEdit ? "// EDIT ACTION" : "// NEW ACTION"}</span>
+          <button onClick={onClose} style={{ background:"none", border:"1px solid #D0D0D0", color:"#999999", width:26, height:26, cursor:"pointer", fontFamily:mono, fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>x</button>
+        </div>
+
+        <label style={lbl}>Task description</label>
+        <input style={inp} placeholder="What needs to be done?" value={form.title}
+          onChange={e=>setForm(p=>({...p,title:e.target.value}))}
+          onBlur={handleTitleBlur} autoFocus/>
+
+        {!isEdit && form.title.trim() && steps.length === 0 && (
+          <button onClick={()=>breakdown(form.title)} style={{ width:"100%", padding:"11px", background:"#1A1A1A", border:"none", color:"#FFFFFF", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:mono, letterSpacing:2, marginBottom:10 }}>
+            GENERATE STEPS
+          </button>
+        )}
+
+        <label style={lbl}>Category</label>
+        {catMode === "add" ? (
+          <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+            <input style={{...inp, marginBottom:0, flex:1}} placeholder="New category name" value={catInput}
+              onChange={e=>setCatInput(e.target.value)}
+              onKeyDown={e=>e.key==="Enter" && addCategory()} autoFocus/>
+            <button onClick={addCategory} style={{ background:"#1A1A1A", border:"none", color:"#FFF", padding:"0 12px", cursor:"pointer", fontFamily:mono, fontSize:11 }}>ADD</button>
+            <button onClick={()=>{setCatMode(null);setCatInput("");}} style={{ background:"transparent", border:"1px solid #D0D0D0", color:"#999", padding:"0 10px", cursor:"pointer", fontFamily:mono, fontSize:11 }}>x</button>
+          </div>
+        ) : catMode === "rename" ? (
+          <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+            <input style={{...inp, marginBottom:0, flex:1}} placeholder={"Rename: " + renamingCat} value={catInput}
+              onChange={e=>setCatInput(e.target.value)}
+              onKeyDown={e=>e.key==="Enter" && renameCategory()} autoFocus/>
+            <button onClick={renameCategory} style={{ background:"#1A1A1A", border:"none", color:"#FFF", padding:"0 12px", cursor:"pointer", fontFamily:mono, fontSize:11 }}>SAVE</button>
+            <button onClick={()=>{setCatMode(null);setCatInput("");setRenamingCat("");}} style={{ background:"transparent", border:"1px solid #D0D0D0", color:"#999", padding:"0 10px", cursor:"pointer", fontFamily:mono, fontSize:11 }}>x</button>
+          </div>
+        ) : (
+          <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+            <select style={{...inp, marginBottom:0, flex:1, appearance:"none"}} value={form.category}
+              onChange={e=>setForm(p=>({...p,category:e.target.value}))}>
+              {categories.map(c=><option key={c}>{c}</option>)}
+            </select>
+            <button onClick={()=>{setCatMode("rename");setRenamingCat(form.category);setCatInput(form.category);}}
+              style={{ background:"transparent", border:"1px solid #D0D0D0", color:"#999", padding:"0 10px", cursor:"pointer", fontFamily:mono, fontSize:9, letterSpacing:1, whiteSpace:"nowrap" }}>REN</button>
+            <button onClick={()=>setCatMode("add")}
+              style={{ background:"transparent", border:"1px solid #D0D0D0", color:"#999", padding:"0 10px", cursor:"pointer", fontFamily:mono, fontSize:16, lineHeight:1 }}>+</button>
+          </div>
+        )}
+
+        <label style={lbl}>Priority</label>
+        <div style={{ display:"flex", gap:6, marginBottom:12 }}>
+          {Object.entries(URGENCY).map(([k,v])=>(
+            <button key={k} onClick={()=>setForm(p=>({...p,urgency:k}))}
+              style={{ flex:1, padding:"7px 4px", background:form.urgency===k?v.color:"transparent", border:`1px solid ${form.urgency===k?v.color:"#D0D0D0"}`, color:form.urgency===k?"#FFF":"#999", fontSize:10, fontWeight:900, cursor:"pointer", fontFamily:mono, letterSpacing:1 }}>
+              {v.label}
+            </button>
+          ))}
+        </div>
+
+        <label style={lbl}>Deadline</label>
+        <input type="date" style={{...inp, appearance:"none", WebkitAppearance:"none"}} value={form.deadline} onChange={e=>setForm(p=>({...p,deadline:e.target.value}))}/>
+
+        <label style={lbl}>Blocker</label>
+        <input style={inp} placeholder="What is stopping progress?" value={form.blocker} onChange={e=>setForm(p=>({...p,blocker:e.target.value}))}/>
+
+        <label style={lbl}>Others involved</label>
+        <input style={inp} placeholder="e.g. Caro, Accountant" value={form.involved} onChange={e=>setForm(p=>({...p,involved:e.target.value}))}/>
+
+        <label style={lbl}>Linked tasks</label>
+        {(()=>{
+          const catTasks = allTasks.filter(t => t.id !== (task && task.id));
+          const linkedArr = form.linked ? form.linked.split(",").map(s=>s.trim()).filter(Boolean) : [];
+          function shorten(title) {
+            const filler = new Set(["a","an","the","to","of","for","and","or","in","on","at","by","with","from","up","is","be","as","it","its","this","that","are","was","were","do","done","has","have","per","re","via","vs","into","onto","out","over","under","about","than","then","when","which","who","how","what","where","any","all","each","if","but","not","no","new","get","set","put","make","take","keep","give","go","run","use","add","see"]);
+            const keywords = title.split(" ").filter(w => w.length > 1 && !filler.has(w.toLowerCase()));
+            return keywords.slice(0,3).join(" ") || title.split(" ").slice(0,3).join(" ");
+          }
+          return (
+            <div style={{ marginBottom:10 }}>
+              {linkedArr.length > 0 && (
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:8 }}>
+                  {linkedArr.map((l,i) => (
+                    <span key={i} style={{ fontFamily:mono, fontSize:11, color:"#1A1A1A", border:"1px solid #D0D0D0", padding:"3px 8px", display:"flex", alignItems:"center", gap:6 }}>
+                      {shorten(l)}
+                      <button onClick={()=>setForm(p=>({...p, linked:linkedArr.filter((_,j)=>j!==i).join(", ")}))}
+                        style={{ background:"none", border:"none", color:"#AAAAAA", cursor:"pointer", padding:0, fontSize:13, lineHeight:1 }}>x</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <select
+                style={{...inp, marginBottom:6, appearance:"none", color:"#999"}}
+                value=""
+                onChange={e=>{
+                  const val = e.target.value;
+                  if (!val) return;
+                  if (!linkedArr.includes(val)) setForm(p=>({...p, linked:[...linkedArr, val].join(", ")}));
+                }}>
+                <option value="">Select a related task...</option>
+                {catTasks.filter(t=>t.category===form.category&&!linkedArr.includes(t.title)).map(t=>(
+                  <option key={t.id} value={t.title}>{shorten(t.title)}</option>
+                ))}
+                {catTasks.filter(t=>t.category!==form.category&&!linkedArr.includes(t.title)).length > 0 && (
+                  <option disabled>── Other categories ──</option>
+                )}
+                {catTasks.filter(t=>t.category!==form.category&&!linkedArr.includes(t.title)).map(t=>(
+                  <option key={t.id} value={t.title}>{t.category}: {shorten(t.title)}</option>
+                ))}
+              </select>
+              <input
+                style={{...inp, marginBottom:0}}
+                placeholder="And/or type a linked task name"
+                value={linkedInput}
+                onChange={e=>setLinkedInput(e.target.value)}
+                onKeyDown={e=>{
+                  if (e.key==="Enter" && linkedInput.trim()) {
+                    const val = linkedInput.trim();
+                    if (!linkedArr.includes(val)) setForm(p=>({...p, linked:[...linkedArr, val].join(", ")}));
+                    setLinkedInput("");
+                  }
+                }}
+              />
+              {linkedInput.trim() && (
+                <button onClick={()=>{
+                  const val = linkedInput.trim();
+                  if (!linkedArr.includes(val)) setForm(p=>({...p, linked:[...linkedArr, val].join(", ")}));
+                  setLinkedInput("");
+                }} style={{ width:"100%", padding:"8px", background:"transparent", border:"1px solid #D0D0D0", color:"#1A1A1A", fontSize:11, cursor:"pointer", fontFamily:mono, letterSpacing:1, marginTop:6 }}>
+                  + ADD "{linkedInput.trim()}"
+                </button>
+              )}
+            </div>
+          );
+        })()}
+
+        <div style={{ marginTop:8, marginBottom:4 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+            <span style={lbl}>Steps {steps.length > 0 ? "(" + steps.length + ")" : ""}</span>
+            {form.title && steps.length > 0 && (
+              <button onClick={()=>breakdown()} style={{ background:"transparent", border:"1px solid #D0D0D0", color:"#999", padding:"4px 10px", fontSize:10, cursor:"pointer", fontFamily:mono, letterSpacing:1 }}>REGENERATE</button>
+            )}
+          </div>
+          {steps.map((s,i)=>(
+            <div key={s.id} style={{ display:"flex", gap:8, alignItems:"center", marginBottom:4 }}>
+              <span style={{ fontFamily:mono, fontSize:10, color:"#CCC", minWidth:18, flexShrink:0 }}>{String(i+1).padStart(2,"0")}</span>
+              <input value={s.text} onChange={e=>setSteps(p=>p.map(x=>x.id===s.id?{...x,text:e.target.value}:x))}
+                style={{ ...inp, marginBottom:0, flex:1, fontSize:12, padding:"7px 10px" }}/>
+              <button onClick={()=>setSteps(p=>p.filter(x=>x.id!==s.id))}
+                style={{ background:"none", border:"none", color:"#CCC", cursor:"pointer", fontSize:16, padding:"0 4px", flexShrink:0, lineHeight:1 }}>x</button>
+            </div>
+          ))}
+          <div style={{ display:"flex", gap:6, marginTop:6 }}>
+            <input value={newStep} onChange={e=>setNewStep(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&newStep.trim()){setSteps(p=>[...p,{id:Date.now(),text:newStep.trim(),done:false}]);setNewStep("");}}}
+              placeholder="Add a step manually" style={{ ...inp, marginBottom:0, flex:1, fontSize:12, padding:"7px 10px", borderStyle:"dashed" }}/>
+            <button onClick={()=>{if(newStep.trim()){setSteps(p=>[...p,{id:Date.now(),text:newStep.trim(),done:false}]);setNewStep("");}}}
+              style={{ background:"transparent", border:"1px dashed #D0D0D0", color:"#AAA", padding:"7px 12px", fontSize:18, cursor:"pointer", fontFamily:mono, flexShrink:0 }}>+</button>
+          </div>
+        </div>
+
+        <button onClick={submit} disabled={!form.title.trim()}
+          style={{ width:"100%", padding:"12px", background:form.title.trim()?"#1A1A1A":"#F0F0F0", border:"none", color:form.title.trim()?"#FFF":"#CCC", fontSize:11, fontWeight:900, cursor:"pointer", fontFamily:mono, letterSpacing:3, marginTop:14, marginBottom:8 }}>
+          {isEdit ? "SAVE CHANGES" : "CONFIRM ACTION"}
+        </button>
+
+        {isEdit && (confirmDelete ? (
+          <div style={{ border:"1px solid #FF2A00", padding:"12px 14px", marginBottom:8 }}>
+            <div style={{ fontFamily:mono, fontSize:10, color:"#FF2A00", letterSpacing:2, marginBottom:10 }}>CONFIRM DELETE?</div>
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={()=>onDelete(task.id)} style={{ flex:1, padding:"10px", background:"#FF2A00", border:"none", color:"#fff", fontSize:11, fontWeight:900, cursor:"pointer", fontFamily:mono, letterSpacing:2 }}>DELETE</button>
+              <button onClick={()=>setConfirmDelete(false)} style={{ flex:1, padding:"10px", background:"transparent", border:"1px solid #D0D0D0", color:"#999", fontSize:11, cursor:"pointer", fontFamily:mono, letterSpacing:2 }}>CANCEL</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={()=>setConfirmDelete(true)} style={{ width:"100%", padding:"11px", background:"transparent", border:"1px solid rgba(255,42,0,0.3)", color:"#FF2A00", fontSize:11, cursor:"pointer", fontFamily:mono, letterSpacing:2, marginBottom:8 }}>DELETE ACTION</button>
+        ))}
+
+        <button onClick={onClose} style={{ width:"100%", padding:"10px", background:"transparent", border:"1px solid #D0D0D0", color:"#AAA", fontSize:11, cursor:"pointer", fontFamily:mono, letterSpacing:2 }}>CANCEL</button>
+      </div>
+    </div>
+  );
+}
+
+function DetailView({ taskId, tasks, onBack, onToggle, onEdit, onDelete }) {
+  const [aiLoading, setAiLoading] = useState(false);
+  const [advice, setAdvice] = useState(null);
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return null;
+  const doneN = task.subactions.filter(s=>s.done).length;
+  const pct = task.subactions.length ? doneN/task.subactions.length : 0;
+  const tip = advice || task.blockerSuggestion;
+  const u = URGENCY[task.urgency];
+
+  async function getAdvice() {
+    setAiLoading(true);
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:300,
+          messages:[{role:"user",content:`Life coach. Task: "${task.title}". Blocker: "${task.blocker}". ONE sharp workaround, 2 sentences max. No preamble.`}]})
+      });
+      const d = await res.json();
+      setAdvice(d.content.map(i=>i.text||"").join(""));
+    } catch(e){}
+    setAiLoading(false);
+  }
+
+  return (
+    <div style={{ padding:"52px 0 40px" }}>
+      <div style={{ padding:"0 16px 12px", borderBottom:"1px solid #2A2A2A", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <button onClick={onBack} style={{ background:"none", border:"none", color:"#888888", cursor:"pointer", fontFamily:mono, fontSize:11, letterSpacing:2, padding:0 }}>← BACK</button>
+        <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+          <span style={{ fontFamily:mono, fontSize:10, color:u.color, letterSpacing:2 }}>{u.label}</span>
+          <button onClick={()=>onEdit(task)} style={{ background:"transparent", border:"1px solid #D0D0D0", color:"#555555", padding:"4px 10px", fontSize:11, cursor:"pointer", fontFamily:mono, letterSpacing:2 }}>EDIT</button>
+        </div>
+      </div>
+      <div style={{ padding:"14px 16px 0" }}>
+        <div style={{ display:"flex", gap:10, alignItems:"center", marginBottom:7 }}>
+          <span style={{ fontFamily:mono, fontSize:10, color:"#999999", letterSpacing:2 }}>{task.category.toUpperCase()}</span>
+          <DeadlineBadge d={task.deadline}/>
+        </div>
+        <h2 style={{ fontSize:20, fontWeight:700, margin:"0 0 10px", lineHeight:1.3, letterSpacing:-0.3, color:"#1A1A1A" }}>{task.title}</h2>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+          <div style={{ flex:1, height:2, background:"#D0D0D0" }}>
+            <div style={{ height:"100%", width:`${pct*100}%`, background:"#1A1A1A", transition:"width 0.4s" }}/>
+          </div>
+          <span style={{ fontFamily:mono, fontSize:10, color:"#999999", minWidth:32 }}>{doneN}/{task.subactions.length}</span>
+        </div>
+        {task.blocker && (
+          <div style={{ border:"1px solid #FF2A0044", background:"#FF2A0008", padding:"10px 12px", marginBottom:12 }}>
+            <div style={{ fontFamily:mono, fontSize:10, color:"#FF2A00", letterSpacing:2, marginBottom:5 }}>BLOCKER</div>
+            <div style={{ fontSize:13, color:"#884433", lineHeight:1.55, marginBottom:tip?8:10 }}>{task.blocker}</div>
+            {tip
+              ? <div style={{ fontSize:13, color:"#777777", lineHeight:1.55, borderTop:"1px solid #FF2A0022", paddingTop:8 }}><span style={{ fontFamily:mono, color:"#FFB800", fontSize:10 }}>→ </span>{tip}</div>
+              : <button onClick={getAdvice} disabled={aiLoading} style={{ background:"transparent", border:"1px solid #FF2A0055", color:"#FF2A00", padding:"6px 12px", fontSize:11, cursor:"pointer", fontFamily:mono, letterSpacing:2 }}>{aiLoading?"PROCESSING...":"UNBLOCK"}</button>
+            }
+          </div>
+        )}
+        {(task.involved?.length>0||task.linked?.length>0) && (
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginBottom:12 }}>
+            {task.involved?.map(i=><span key={i} style={{ fontFamily:mono, fontSize:10, color:"#999999", border:"1px solid #D0D0D0", padding:"2px 6px", letterSpacing:1 }}>↗ {i}</span>)}
+            {task.linked?.map(l=><span key={l} style={{ fontFamily:mono, fontSize:10, color:"#999999", border:"1px solid #D0D0D0", padding:"2px 6px", letterSpacing:1 }}>⇌ {l}</span>)}
+          </div>
+        )}
+        <div style={{ fontFamily:mono, fontSize:10, color:"#AAAAAA", letterSpacing:2, marginBottom:8, marginTop:14 }}>STEPS</div>
+        {task.subactions.map((s,i)=>(
+          <div key={s.id} onClick={()=>onToggle(task.id,s.id)} style={{ display:"flex", gap:12, alignItems:"flex-start", padding:"10px 12px", marginBottom:4, background:"#FFFFFF", border:"1px solid #D0D0D0", cursor:"pointer" }}>
+            <div style={{ width:16, height:16, border:"1px solid #CCCCCC", background:s.done?"#CCCCCC":"transparent", flexShrink:0, marginTop:1 }}/>
+            <span style={{ fontSize:13, lineHeight:1.5, color:s.done?"#AAAAAA":"#555555", textDecoration:s.done?"line-through":"none" }}>
+              <span style={{ fontFamily:mono, color:"#CCCCCC", marginRight:8, fontSize:10 }}>{String(i+1).padStart(2,"0")}</span>{s.text}
+            </span>
+          </div>
+        ))}
+        {(pct===1 || task.done) && (
+          <div style={{ marginTop:16, marginBottom:32 }}>
+            <div style={{ border:"1px solid #D0D0D0", padding:"14px 16px", textAlign:"center", marginBottom:12 }}>
+              <div style={{ fontFamily:mono, fontSize:11, color:"#999999", letterSpacing:3 }}>COMPLETE</div>
+            </div>
+            <button onClick={()=>onDelete(task.id)} style={{ width:"100%", padding:"12px", background:"transparent", border:"1px solid #FF2A0044", color:"#FF2A00", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:mono, letterSpacing:3 }}>
+              DELETE TASK ×
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CategorySection({ category, tasks, collapsed, onToggleCollapse, onOpenDetail, onToggleStep, onEditTask }) {
+  const openTasks = tasks.filter(t => !t.done);
+  const doneCount = tasks.filter(t => t.done).length;
+  if (tasks.length === 0) return null;
+  const urgencyOrder = {red:0,amber:1,green:2};
+  const topUrgency = openTasks.length > 0
+    ? openTasks.reduce((b,t)=>urgencyOrder[t.urgency]<urgencyOrder[b.urgency]?t:b, openTasks[0]).urgency
+    : "green";
+  const u = URGENCY[topUrgency];
+
+  return (
+    <div>
+      <div onClick={()=>onToggleCollapse(category)} style={{ display:"flex", alignItems:"center", background:"#FFFFFF", cursor:"pointer", borderTop:"1px solid #2A2A2A", borderBottom:collapsed?"none":"1px solid #D0D0D0", padding:"0 14px", minHeight:48 }}>
+        <div style={{ flex:1 }}>
+          <span style={{ fontFamily:mono, fontSize:12, fontWeight:700, color:openTasks.length>0?"#1A1A1A":"#AAAAAA", letterSpacing:2 }}>{category.toUpperCase()}</span>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          {openTasks.length > 0 && (
+            <span style={{ fontFamily:mono, fontSize:11, color:"#1A1A1A", border:"1px solid #D0D0D0", width:28, height:28, display:"inline-flex", alignItems:"center", justifyContent:"center", letterSpacing:0, flexShrink:0 }}>
+              {openTasks.length}
+            </span>
+          )}
+          {doneCount > 0 && openTasks.length === 0 && <span style={{ fontFamily:mono, fontSize:10, color:"#AAAAAA", letterSpacing:1 }}>DONE</span>}
+          <span style={{ fontFamily:mono, fontSize:10, color:"#AAAAAA" }}>{collapsed?"▶":"▼"}</span>
+        </div>
+      </div>
+      {!collapsed && openTasks.sort((a,b)=>{
+        const o={red:0,amber:1,green:2};
+        if(o[a.urgency]!==o[b.urgency]) return o[a.urgency]-o[b.urgency];
+        return (daysUntil(a.deadline)??999)-(daysUntil(b.deadline)??999);
+      }).map(task => {
+        const doneN = task.subactions.filter(s=>s.done).length;
+        const total = task.subactions.length;
+        const pct = total ? doneN/total : 0;
+        const tu = URGENCY[task.urgency];
+        return (
+          <div key={task.id} style={{ borderBottom:"1px solid #D0D0D0" }}>
+            <div style={{ display:"flex", background:"#FFFFFF" }}>
+              <div style={{ width:3, flexShrink:0, background:tu.color, alignSelf:"stretch", marginLeft:3 }}/>
+              <div style={{ flex:1, padding:"9px 12px 7px", cursor:"pointer" }} onClick={()=>onOpenDetail(task.id)}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:3 }}>
+                  <span style={{ fontSize:14, fontWeight:600, color:"#333333", lineHeight:1.3, flex:1 }}>{task.title}</span>
+                  <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0 }}>
+                    {task.blocker && <span style={{ fontFamily:mono, fontSize:10, color:"#FF2A00", letterSpacing:1 }}>BLK</span>}
+                  </div>
+                </div>
+                {total > 0 && (
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <div style={{ flex:1, height:1, background:"#D0D0D0" }}>
+                      <div style={{ height:"100%", width:`${pct*100}%`, background:"#1A1A1A", transition:"width 0.4s" }}/>
+                    </div>
+                    <span style={{ fontFamily:mono, fontSize:10, color:"#AAAAAA" }}>{doneN}/{total}</span>
+                  </div>
+                )}
+              </div>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"center", borderLeft:"1px solid #2A2A2A", padding:"0 8px", flexShrink:0, width:72 }}>
+                {task.deadline ? (
+                  <span style={{ fontFamily:mono, fontSize:10, color:"#1A1A1A", letterSpacing:0.3, textAlign:"center" }}>
+                    {(()=>{ const d=daysUntil(task.deadline); return d===null?"":d<0?`${Math.abs(d)} days over`:d===0?"today":`${d} days`; })()}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            {task.subactions.map((s,sIdx)=>(
+              <div key={s.id} onClick={()=>onToggleStep(task.id,s.id)} style={{ display:"flex", gap:10, alignItems:"flex-start", padding:"7px 14px 7px 22px", background:"#FFFFFF", cursor:"pointer" }}>
+                <div style={{ width:12, height:12, border:"1px solid #252525", background:s.done?"#CCCCCC":"transparent", flexShrink:0, marginTop:2 }}/>
+                <span style={{ fontSize:13, lineHeight:1.55, color:s.done?"#C0C0C0":"#909090", textDecoration:s.done?"line-through":"none" }}>
+                  <span style={{ fontFamily:mono, color:"#CCCCCC", marginRight:6, fontSize:10 }}>{String(sIdx+1).padStart(2,"0")}</span>{s.text}
+                </span>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+      {!collapsed && tasks.filter(t=>t.done).map(task => (
+        <div key={task.id} style={{ display:"flex", borderBottom:"1px solid #D0D0D0", opacity:0.4 }}>
+          <div style={{ width:3, flexShrink:0, background:"#CCCCCC", alignSelf:"stretch", marginLeft:3 }}/>
+          <div style={{ flex:1, padding:"8px 12px", cursor:"pointer" }} onClick={()=>onOpenDetail(task.id)}>
+            <span style={{ fontSize:13, color:"#AAAAAA", textDecoration:"line-through" }}>{task.title}</span>
+          </div>
+          <button onClick={e=>{e.stopPropagation();onEditTask(task);}} style={{ background:"transparent", border:"none", borderLeft:"1px solid #D0D0D0", color:"#CCCCCC", padding:"0 12px", cursor:"pointer", fontFamily:mono, fontSize:14, flexShrink:0 }}>x</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SplashScreen({ onEnter, urgentTasks, onCompleteStep }) {
+  const [phase, setPhase] = useState(0); // 0=intro, 1=dropping, 2=subtask, 3=celebrate
+  const [dotVisible, setDotVisible] = useState(false);
+  const [cursorVisible, setCursorVisible] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const [textVisible, setTextVisible] = useState(0);
+  const [taskIndex, setTaskIndex] = useState(0);
+  const [taskVisible, setTaskVisible] = useState(false);
+  const [swipeX, setSwipeX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const [crossedOut, setCrossedOut] = useState(false);
+  const [flyOff, setFlyOff] = useState(0);
+  // Celebrate typing
+  const [celebText, setCelebText] = useState(0);
+  const [celebReady, setCelebReady] = useState(false);
+  const touchStartX = useRef(0);
+  const chars = ["D","o","\u00A0","O","n","e","\u00A0","T","h","i","n","g"];
+  const celebChars = ["D","o","\u00A0","O","n","e","\u00A0","M","o","r","e"];
+
+  useEffect(() => {
+    const t = setTimeout(() => setDotVisible(true), 500);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (!dotVisible) return;
+    const t = setTimeout(() => setCursorVisible(true), 900);
+    return () => clearTimeout(t);
+  }, [dotVisible]);
+  useEffect(() => {
+    if (!cursorVisible) return;
+    const t = setTimeout(() => setTyping(true), 700);
+    return () => clearTimeout(t);
+  }, [cursorVisible]);
+  useEffect(() => {
+    if (!typing || phase !== 0 || textVisible >= chars.length) return;
+    const ch = chars[textVisible];
+    const delay = ch === "\u00A0" ? 300 : 75 + Math.random() * 65;
+    const t = setTimeout(() => setTextVisible(v => v + 1), delay);
+    return () => clearTimeout(t);
+  }, [typing, textVisible, phase]);
+
+  // Celebrate typing effect
+  useEffect(() => {
+    if (phase !== 3) return;
+    if (celebText >= celebChars.length) { setCelebReady(true); return; }
+    const ch = celebChars[celebText];
+    const delay = ch === "\u00A0" ? 300 : 75 + Math.random() * 65;
+    const t = setTimeout(() => setCelebText(v => v + 1), delay);
+    return () => clearTimeout(t);
+  }, [phase, celebText]);
+
+  // Build urgent subtask list — snapshot in a ref so it stays stable during animations
+  const urgentSubtasks = [];
+  urgentTasks.forEach(task => {
+    const nextSub = task.subactions.find(s => !s.done);
+    if (nextSub) urgentSubtasks.push({ sub: nextSub, task });
+  });
+  const urgentSubtasksRef = useRef(urgentSubtasks);
+  useEffect(() => { urgentSubtasksRef.current = urgentSubtasks; }, [urgentTasks]);
+
+  function startCelebration() {
+    setPhase(3);
+    setCelebText(0);
+    setCelebReady(false);
+  }
+
+  function handleCelebTap() {
+    if (!celebReady) return;
+    setPhase(2);
+    setTaskVisible(false);
+    setTimeout(() => {
+      const len = urgentSubtasksRef.current.length;
+      setTaskIndex(i => len > 0 ? (i + 1) % len : 0);
+      setTaskVisible(true);
+    }, 200);
+  }
+
+  function handleDotPress() {
+    if (phase === 0 && dotVisible) {
+      setPhase(1);
+      setTaskVisible(false);
+      setTimeout(() => {
+        setPhase(2);
+        setTimeout(() => setTaskVisible(true), 200);
+      }, 2600);
+    } else if (phase === 2) {
+      onEnter(null);
+    } else if (phase === 3 && celebReady) {
+      handleCelebTap();
+    }
+  }
+
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX;
+    setSwiping(true);
+    setFlyOff(0);
+  }
+
+  function handleTouchMove(e) {
+    const dx = e.touches[0].clientX - touchStartX.current;
+    setSwipeX(dx);
+    if (dx > 40) setCrossedOut(true);
+    else setCrossedOut(false);
+  }
+
+  function handleTouchEnd() {
+    const dx = swipeX;
+    setSwiping(false);
+
+    if (dx > 60) {
+      // Swipe right → complete step, fly off right
+      setFlyOff(1);
+      const list = urgentSubtasksRef.current;
+      const item = list[taskIndex];
+      const completedSubId = item ? item.sub.id : null;
+      const remainingCount = item
+        ? item.task.subactions.filter(s => !s.done && s.id !== completedSubId).length
+        : 0;
+      if (item) onCompleteStep(item.task.id, item.sub.id);
+      setTimeout(() => {
+        setFlyOff(0);
+        setSwipeX(0);
+        setCrossedOut(false);
+        setTaskVisible(false);
+        setTimeout(() => {
+          if (remainingCount === 0) {
+            startCelebration();
+          } else {
+            setTaskVisible(true);
+          }
+        }, 150);
+      }, 420);
+    } else if (dx < -60) {
+      // Swipe left → fly off left, next urgent task
+      setFlyOff(-1);
+      setTimeout(() => {
+        setFlyOff(0);
+        setSwipeX(0);
+        setCrossedOut(false);
+        setTaskVisible(false);
+        setTimeout(() => {
+          const len = urgentSubtasksRef.current.length;
+          setTaskIndex(i => len > 0 ? (i + 1) % len : 0);
+          setTaskVisible(true);
+        }, 150);
+      }, 420);
+    } else {
+      setSwipeX(0);
+      setCrossedOut(false);
+    }
+  }
+
+  function handleTaskTap() {
+    if (phase !== 2 || !urgentSubtasks[taskIndex]) return;
+    onEnter(urgentSubtasks[taskIndex].task);
+  }
+
+  const typingDone = textVisible >= chars.length;
+  const currentItem = urgentSubtasks[taskIndex] || null;
+  const u = currentItem ? URGENCY[currentItem.task.urgency] : null;
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"#FFFFFF", zIndex:500, maxWidth:430, margin:"0 auto" }}>
+      <style>{`
+        @keyframes dotIn {
+          from { opacity:0; transform:translateX(-50%) translateY(-50%) scale(0.3); }
+          to   { opacity:1; transform:translateX(-50%) translateY(-50%) scale(1); }
+        }
+        @keyframes dropBounce {
+          0%   { transform:translateX(-50%) translateY(-50%);   animation-timing-function:cubic-bezier(0.55,0,1,0.45); }
+          40%  { transform:translateX(-50%) translateY(38vh);   animation-timing-function:cubic-bezier(0,0.55,0.45,1); }
+          54%  { transform:translateX(-50%) translateY(16vh);   animation-timing-function:cubic-bezier(0.55,0,1,0.45); }
+          65%  { transform:translateX(-50%) translateY(38vh);   animation-timing-function:cubic-bezier(0,0.55,0.45,1); }
+          75%  { transform:translateX(-50%) translateY(26vh);   animation-timing-function:cubic-bezier(0.55,0,1,0.45); }
+          83%  { transform:translateX(-50%) translateY(38vh);   animation-timing-function:cubic-bezier(0,0.55,0.45,1); }
+          90%  { transform:translateX(-50%) translateY(32vh);   animation-timing-function:cubic-bezier(0.55,0,1,0.45); }
+          95%  { transform:translateX(-50%) translateY(38vh);   animation-timing-function:cubic-bezier(0,0.55,0.45,1); }
+          98%  { transform:translateX(-50%) translateY(35vh);   animation-timing-function:cubic-bezier(0.55,0,1,0.45); }
+          100% { transform:translateX(-50%) translateY(38vh); }
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+      `}</style>
+
+      {/* DOT — always visible after phase 1 settles */}
+      <div onClick={handleDotPress} style={{
+        position:"absolute", left:"50%", top:"50%",
+        transform: phase >= 2 ? "translateX(-50%) translateY(38vh)" : "translateX(-50%) translateY(-50%)",
+        width:56, height:56, borderRadius:"50%",
+        background:"#1A1A1A",
+        opacity: dotVisible ? 1 : 0,
+        animation: dotVisible && phase === 0 ? "dotIn 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards"
+                 : phase === 1 ? "dropBounce 2.6s linear forwards" : "none",
+        cursor: dotVisible ? "pointer" : "default",
+        userSelect:"none",
+        boxShadow:"0 4px 24px rgba(0,0,0,0.12)",
+        zIndex:10,
+        willChange:"transform",
+      }}/>
+
+      {/* Typing text — intro phase 0 */}
+      {phase === 0 && (
+        <div style={{ position:"absolute", bottom:"18%", left:0, right:0, textAlign:"center" }}>
+          <span style={{ display:"inline-block", position:"relative", fontSize:22, fontWeight:700, letterSpacing:-0.5, fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif", color:"#1A1A1A" }}>
+            <span style={{ visibility:"hidden" }}>Do One Thing</span>
+            <span style={{ position:"absolute", left:0, top:0, whiteSpace:"nowrap" }}>
+              {chars.map((ch, i) => (
+                <span key={i} style={{ opacity: i < textVisible ? 1 : 0 }}>{ch}</span>
+              ))}
+              {cursorVisible && !typingDone && (
+                <span style={{ display:"inline-block", width:2, height:"0.85em", background:"#1A1A1A", marginLeft:2, verticalAlign:"text-bottom", animation: typing ? "blink 0.65s step-end infinite" : "none" }}/>
+              )}
+            </span>
+          </span>
+        </div>
+      )}
+
+      {/* Celebration — task complete, type Do One Thing again */}
+      {phase === 3 && (
+        <div onClick={handleCelebTap} style={{ position:"absolute", top:0, left:0, right:0, bottom:0, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", cursor: celebReady ? "pointer" : "default" }}>
+          <span style={{ display:"inline-block", position:"relative", fontSize:22, fontWeight:700, letterSpacing:-0.5, fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif", color:"#1A1A1A" }}>
+            <span style={{ visibility:"hidden" }}>Do One More</span>
+            <span style={{ position:"absolute", left:0, top:0, whiteSpace:"nowrap" }}>
+              {celebChars.map((ch, i) => (
+                <span key={i} style={{ opacity: i < celebText ? 1 : 0 }}>{ch}</span>
+              ))}
+              {!celebReady && (
+                <span style={{ display:"inline-block", width:2, height:"0.85em", background:"#1A1A1A", marginLeft:2, verticalAlign:"text-bottom", animation:"blink 0.65s step-end infinite" }}/>
+              )}
+            </span>
+          </span>
+        </div>
+      )}
+
+      {/* Subtask card */}
+      {phase === 2 && currentItem && (
+        <div
+          onClick={handleTaskTap}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            position:"absolute", left:32, right:32, top:"50%",
+            transform: flyOff !== 0
+              ? `translateY(-50%) translateX(${flyOff * 120}vw) rotate(${flyOff * 8}deg)`
+              : `translateY(-50%) translateX(${swiping ? swipeX * 0.5 : 0}px) rotate(${swiping ? swipeX * 0.03 : 0}deg)`,
+            opacity: flyOff !== 0 ? 0 : taskVisible ? 1 : 0,
+            transition: flyOff !== 0
+              ? "transform 0.42s cubic-bezier(0.4,0,1,1), opacity 0.35s ease"
+              : swiping ? "none" : "opacity 0.35s ease, transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)",
+            cursor:"pointer",
+            userSelect:"none",
+          }}>
+          <div style={{ borderTop:"1px solid #1A1A1A", borderBottom:"1px solid #1A1A1A", padding:"20px 0" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <span style={{ fontFamily:mono, fontSize:10, color:"#AAAAAA", letterSpacing:2 }}>{currentItem.task.category.toUpperCase()}</span>
+              <span style={{ fontFamily:mono, fontSize:10, color:u.color, letterSpacing:1 }}>{u.label}</span>
+            </div>
+            <div style={{ fontSize:13, color:"#AAAAAA", lineHeight:1.4, marginBottom:8, fontFamily:mono, letterSpacing:0.5 }}>{currentItem.task.title}</div>
+            <div style={{ fontSize:17, fontWeight:600, color:"#1A1A1A", lineHeight:1.4, textDecoration: crossedOut ? "line-through" : "none", transition:"text-decoration 0.15s" }}>{currentItem.sub.text}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+function AnimatedTitle() {
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  const chars = ["D","o","\u00A0","O","n","e","\u00A0","T","h","i","n","g"];
+  const total = chars.length;
+
+  useEffect(() => {
+    const t = setTimeout(() => setStarted(true), 600);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!started || visibleCount >= total) return;
+    const ch = chars[visibleCount];
+    const delay = ch === "\u00A0" ? 300 : 80 + Math.random() * 70;
+    const t = setTimeout(() => setVisibleCount(v => v + 1), delay);
+    return () => clearTimeout(t);
+  }, [started, visibleCount]);
+
+  const done = visibleCount >= total;
+
+  return (
+    <span style={{ display:"inline-block", position:"relative", whiteSpace:"nowrap" }}>
+      {/* Ghost layer — full text always occupies space, invisible */}
+      <span style={{ visibility:"hidden", letterSpacing:-0.5 }}>Do One Thing</span>
+      {/* Typed layer — sits exactly on top */}
+      <span style={{ position:"absolute", left:0, top:0, letterSpacing:-0.5, whiteSpace:"nowrap" }}>
+        {chars.map((ch, i) => (
+          <span key={i} style={{ opacity: i < visibleCount ? 1 : 0 }}>{ch}</span>
+        ))}
+        {started && !done && (
+          <span style={{
+            display:"inline-block", width:2, height:"0.85em",
+            background:"#1A1A1A", marginLeft:1, verticalAlign:"text-bottom",
+            animation:"blink 0.7s step-end infinite",
+          }}/>
+        )}
+      </span>
+      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
+    </span>
+  );
+}
+
+function App() {
+  const [tasks, setTasks] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dot_tasks');
+      return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    } catch(e) { return INITIAL_TASKS; }
+  });
+  const [splash, setSplash] = useState(true);
+  const [categories, setCategories] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dot_categories');
+      return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
+    } catch(e) { return DEFAULT_CATEGORIES; }
+  });
+  const [cat, setCat] = useState("All");
+  const [urgencyFilter, setUrgencyFilter] = useState(null);
+  const [detailId, setDetailId] = useState(null);
+  const [modalTask, setModalTask] = useState(null);
+  const [collapsed, setCollapsed] = useState(Object.fromEntries(DEFAULT_CATEGORIES.map(c=>[c,true])));
+
+  // Persist tasks and categories to localStorage whenever they change
+  useEffect(() => {
+    try { localStorage.setItem('dot_tasks', JSON.stringify(tasks)); } catch(e) {}
+  }, [tasks]);
+
+  useEffect(() => {
+    try { localStorage.setItem('dot_categories', JSON.stringify(categories)); } catch(e) {}
+  }, [categories]);
+
+  function toggleCollapse(c) { setCollapsed(p=>({...p,[c]:!p[c]})); }
+  function toggleUrgency(u) { setUrgencyFilter(p => p===u ? null : u); }
+
+  function toggleStep(tid, sid) {
+    setTasks(prev => prev.map(t => {
+      if (t.id!==tid) return t;
+      const subs = t.subactions.map(s=>s.id===sid?{...s,done:!s.done}:s);
+      return {...t, subactions:subs, done:subs.every(s=>s.done)};
+    }));
+  }
+
+  function completeStep(tid, sid) {
+    setTasks(prev => prev.map(t => {
+      if (t.id!==tid) return t;
+      const subs = t.subactions.map(s=>s.id===sid?{...s,done:true}:s);
+      return {...t, subactions:subs, done:subs.every(s=>s.done)};
+    }));
+  }
+
+  function saveTask(saved) {
+    setTasks(prev => {
+      const exists = prev.find(t=>t.id===saved.id);
+      if (exists) return prev.map(t=>t.id===saved.id?saved:t);
+      return [...prev, saved];
+    });
+    setModalTask(null);
+    if (!tasks.find(t=>t.id===saved.id)) setCat(saved.category);
+  }
+
+  function deleteTask(id) {
+    setTasks(prev=>prev.filter(t=>t.id!==id));
+    setModalTask(null);
+    setDetailId(null);
+  }
+
+  function renameTaskCategory(oldName, newName) {
+    setTasks(prev => prev.map(t => t.category===oldName ? {...t, category:newName} : t));
+    if (cat === oldName) setCat(newName);
+  }
+
+  const allOpen = tasks.filter(t=>!t.done);
+  const urgentTasks = [...allOpen].sort((a,b)=>{const o={red:0,amber:1,green:2};return o[a.urgency]-o[b.urgency]||(daysUntil(a.deadline)??999)-(daysUntil(b.deadline)??999)});
+
+  if (splash) {
+    return (
+      <div style={{ fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif", background:"#FFFFFF", minHeight:"100vh", maxWidth:430, margin:"0 auto" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');::-webkit-scrollbar{display:none}*{-webkit-tap-highlight-color:transparent}`}</style>
+        <SplashScreen
+          urgentTasks={urgentTasks}
+          onCompleteStep={(tid, sid) => completeStep(tid, sid)}
+          onEnter={(task) => {
+            setSplash(false);
+            if (task) {
+              setCat(task.category);
+              setDetailId(task.id);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+  const counts = { red:allOpen.filter(t=>t.urgency==="red").length, amber:allOpen.filter(t=>t.urgency==="amber").length, green:allOpen.filter(t=>t.urgency==="green").length };
+  const doneTotal = tasks.filter(t=>t.done).length;
+
+  // Apply both category and urgency filters
+  const filteredOpen = allOpen
+    .filter(t => cat==="All" || t.category===cat)
+    .filter(t => !urgencyFilter || t.urgency===urgencyFilter)
+    .sort((a,b)=>{
+      const o={red:0,amber:1,green:2};
+      if(o[a.urgency]!==o[b.urgency]) return o[a.urgency]-o[b.urgency];
+      return (daysUntil(a.deadline)??999)-(daysUntil(b.deadline)??999);
+    });
+
+  const topTask = allOpen.sort((a,b)=>{const o={red:0,amber:1,green:2};return o[a.urgency]-o[b.urgency];})[0];
+  const coach = topTask
+    ? counts.red>0 ? `${counts.red} URGENT. NEXT: ${topTask.title.toUpperCase()}. DO STEP 01 ONLY.`
+    : `NO CRITICAL ITEMS. FOCUS: ${topTask.title.toUpperCase()}.`
+    : "ALL CLEAR. ADD A NEW ACTION.";
+
+  if (detailId && !modalTask) {
+    return (
+      <div style={{ fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif", background:"#FFFFFF", minHeight:"100vh", maxWidth:430, margin:"0 auto", color:"#1A1A1A" }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');::-webkit-scrollbar{display:none}*{-webkit-tap-highlight-color:transparent}`}</style>
+        <DetailView taskId={detailId} tasks={tasks} onBack={()=>setDetailId(null)} onToggle={toggleStep} onEdit={t=>setModalTask(t)} onDelete={id=>{deleteTask(id);setDetailId(null);}}/>
+        {modalTask && <TaskModal task={modalTask==="new"?null:modalTask} defaultCat={cat==="All"?"Work":cat} categories={categories} onCategoriesChange={setCategories} onRenameCategory={renameTaskCategory} allTasks={tasks} onSave={saved=>{saveTask(saved);setDetailId(saved.id);}} onDelete={deleteTask} onClose={()=>setModalTask(null)}/>}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ fontFamily:"'Helvetica Neue',Helvetica,Arial,sans-serif", background:"#FFFFFF", minHeight:"100vh", maxWidth:430, margin:"0 auto", color:"#1A1A1A", paddingBottom:80 }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');::-webkit-scrollbar{display:none}*{-webkit-tap-highlight-color:transparent}`}</style>
+
+      {/* HEADER */}
+      <div style={{ padding:"52px 16px 0", borderBottom:"1px solid #2A2A2A", position:"sticky", top:0, background:"#FFFFFF", zIndex:50 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:12 }}>
+          <div>
+            <div style={{ fontFamily:mono, fontSize:10, color:"#AAAAAA", letterSpacing:3, marginBottom:5 }}>{new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"numeric"}).toUpperCase()}</div>
+            <div style={{ fontSize:23, fontWeight:700, letterSpacing:-0.5, color:"#1A1A1A", lineHeight:1 }}>
+              <AnimatedTitle/>
+            </div>
+          </div>
+          <div style={{ fontFamily:mono, textAlign:"right" }}>
+            <div style={{ fontSize:10, color:"#AAAAAA", letterSpacing:2, marginBottom:5 }}>TOTAL</div>
+            <div style={{ fontSize:23, fontWeight:700, color:"#1A1A1A", lineHeight:1 }}>{tasks.filter(t=>!t.done).length}</div>
+          </div>
+        </div>
+
+        {/* Scoreboard — tappable urgency filters */}
+        <div style={{ display:"flex", borderTop:"1px solid #2A2A2A" }}>
+          {[["red","URG"],["amber","SOON"],["green","PLAN"]].map(([k,l],i)=>{
+            const active = urgencyFilter===k;
+            return (
+              <button key={k} onClick={()=>toggleUrgency(k)} style={{
+                flex:1, padding:"8px 0", textAlign:"center",
+                borderRight:i<2?"1px solid #2A2A2A":"none",
+                background: active ? URGENCY[k].bg : "transparent",
+                border:"none", borderRight:i<2?"1px solid #2A2A2A":"none",
+                borderBottom: active ? `2px solid ${URGENCY[k].color}` : "2px solid transparent",
+                cursor:"pointer", fontFamily:mono,
+              }}>
+                <div style={{ fontSize:20, fontWeight:700, color:active?URGENCY[k].color:URGENCY[k].color, lineHeight:1, opacity:active?1:0.5 }}>{counts[k]}</div>
+                <div style={{ fontSize:10, color:active?URGENCY[k].color:"#AAAAAA", letterSpacing:2, marginTop:3 }}>{l}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Category tabs */}
+        <div style={{ display:"flex", overflowX:"auto", marginLeft:-16, marginRight:-16, borderTop:"1px solid #2A2A2A", borderBottom:"1px solid #2A2A2A" }}>
+          {["All",...categories].map(c=>{
+            const cnt = c==="All"
+              ? allOpen.filter(t=>!urgencyFilter||t.urgency===urgencyFilter).length
+              : allOpen.filter(t=>t.category===c&&(!urgencyFilter||t.urgency===urgencyFilter)).length;
+            const active = cat===c;
+            return (
+              <button key={c} onClick={()=>setCat(c)} style={{ background:"transparent", borderRight:"1px solid #2A2A2A", borderTop:"none", borderLeft:"none", borderBottom:"none", color:active?"#1A1A1A":"#AAAAAA", padding:"9px 12px", fontSize:10, fontWeight:active?900:400, cursor:"pointer", fontFamily:mono, letterSpacing:1.5, whiteSpace:"nowrap", flexShrink:0 }}>
+                {c==="All"?"ALL":(CAT_ICONS[c] || c.slice(0,3).toUpperCase())}<br/>
+                <span style={{ fontSize:12, letterSpacing:0, color:active?"#1A1A1A":"#CCCCCC", fontWeight:active?900:400 }}>{cnt}</span>
+              </button>
+            );
+          })}
+          <button onClick={()=>setModalTask("new")} style={{ background:"transparent", border:"none", color:"#FFB800", padding:"9px 14px", fontSize:16, cursor:"pointer", fontFamily:mono, whiteSpace:"nowrap", flexShrink:0 }}>+</button>
+        </div>
+
+      </div>
+
+      {/* ALL VIEW — grouped by category, each filtered */}
+      {cat==="All" && (
+        <div>
+          {categories.map(category=>{
+            const catTasksAll = tasks.filter(t=>t.category===category&&(!urgencyFilter||t.urgency===urgencyFilter||t.done));
+            if (catTasksAll.length===0) return null;
+            return <CategorySection key={category} category={category} tasks={catTasksAll} collapsed={!!collapsed[category]} onToggleCollapse={toggleCollapse} onOpenDetail={setDetailId} onToggleStep={toggleStep} onEditTask={t=>setModalTask(t)}/>;
+          })}
+          {filteredOpen.length===0 && (
+            <div style={{ padding:"32px 16px", textAlign:"center" }}>
+              <div style={{ fontFamily:mono, fontSize:10, color:"#CCCCCC", letterSpacing:3 }}>NO TASKS MATCH THIS FILTER</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SINGLE CATEGORY VIEW — same expanded layout as All view */}
+      {cat!=="All" && (
+        <div>
+          {filteredOpen.length===0 && (
+            <div style={{ padding:"32px 16px", textAlign:"center" }}>
+              <div style={{ fontFamily:mono, fontSize:10, color:"#CCCCCC", letterSpacing:3, marginBottom:14 }}>
+                {urgencyFilter ? "NO TASKS MATCH THIS FILTER" : "SECTION CLEAR"}
+              </div>
+              {!urgencyFilter && <button onClick={()=>setModalTask("new")} style={{ background:"transparent", border:"1px solid #D0D0D0", color:"#1A1A1A", padding:"10px 20px", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:mono, letterSpacing:3 }}>+ ADD ACTION</button>}
+            </div>
+          )}
+          {filteredOpen.map(task => {
+            const doneN = task.subactions.filter(s=>s.done).length;
+            const total = task.subactions.length;
+            const pct = total ? doneN/total : 0;
+            const u = URGENCY[task.urgency];
+            return (
+              <div key={task.id} style={{ borderBottom:"1px solid #D0D0D0" }}>
+                {/* Task header row */}
+                <div style={{ display:"flex", background:"#FFFFFF" }}>
+                  <div style={{ width:3, flexShrink:0, background:u.color, alignSelf:"stretch", marginLeft:3 }}/>
+                  <div style={{ flex:1, padding:"9px 12px 7px", cursor:"pointer" }} onClick={()=>setDetailId(task.id)}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:8, marginBottom:3 }}>
+                      <span style={{ fontSize:14, fontWeight:600, color:"#222222", lineHeight:1.3, flex:1 }}>{task.title}</span>
+                      <div style={{ display:"flex", gap:6, alignItems:"center", flexShrink:0 }}>
+                        {task.blocker && <span style={{ fontFamily:mono, fontSize:10, color:"#FF2A00", letterSpacing:1 }}>BLK</span>}
+                      </div>
+                    </div>
+                    {total > 0 && (
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <div style={{ flex:1, height:1, background:"#D0D0D0" }}>
+                          <div style={{ height:"100%", width:`${pct*100}%`, background:"#1A1A1A", transition:"width 0.4s" }}/>
+                        </div>
+                        <span style={{ fontFamily:mono, fontSize:10, color:"#AAAAAA" }}>{doneN}/{total}</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Days column */}
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"center", borderLeft:"1px solid #D0D0D0", padding:"0 8px", flexShrink:0, width:72 }}>
+                    {task.deadline ? (
+                      <span style={{ fontFamily:mono, fontSize:10, color:"#1A1A1A", letterSpacing:0.3, textAlign:"center" }}>
+                        {(()=>{ const d=daysUntil(task.deadline); return d===null?"":d<0?`${Math.abs(d)} days over`:d===0?"today":`${d} days`; })()}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                {/* Subactions — same as All view */}
+                {task.subactions.map((s, sIdx) => (
+                  <div key={s.id} onClick={()=>toggleStep(task.id, s.id)}
+                    style={{ display:"flex", gap:10, alignItems:"flex-start", padding:"7px 14px 7px 22px", background:"#FFFFFF", cursor:"pointer" }}>
+                    <div style={{ width:12, height:12, border:`1px solid ${s.done?"#CCCCCC":"#CCCCCC"}`, background:s.done?"#CCCCCC":"transparent", flexShrink:0, marginTop:2 }}/>
+                    <span style={{ fontSize:13, lineHeight:1.55, color:s.done?"#CCCCCC":"#777777", textDecoration:s.done?"line-through":"none" }}>
+                      <span style={{ fontFamily:mono, color:"#CCCCCC", marginRight:6, fontSize:10 }}>{String(sIdx+1).padStart(2,"0")}</span>{s.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+          {!urgencyFilter && tasks.filter(t=>t.done&&t.category===cat).length>0&&(
+            <>
+              <div style={{ fontFamily:mono, fontSize:10, color:"#CCCCCC", letterSpacing:3, padding:"14px 16px 8px", borderTop:"1px solid #D0D0D0" }}>COMPLETED</div>
+              {tasks.filter(t=>t.done&&t.category===cat).map(task=>(
+                <div key={task.id} style={{ display:"flex", borderBottom:"1px solid #D0D0D0", opacity:0.35, cursor:"pointer" }} onClick={()=>setDetailId(task.id)}>
+                  <div style={{ flex:1, padding:"8px 12px 8px 16px", display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontFamily:mono, fontSize:10, color:"#AAAAAA" }}>■</span>
+                    <span style={{ fontSize:13, color:"#AAAAAA", textDecoration:"line-through" }}>{task.title}</span>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {modalTask && <TaskModal task={modalTask==="new"?null:modalTask} defaultCat={cat==="All"?"Work":cat} categories={categories} onCategoriesChange={setCategories} onRenameCategory={renameTaskCategory} allTasks={tasks} onSave={saveTask} onDelete={deleteTask} onClose={()=>setModalTask(null)}/>}
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+
+  </script>
+</body>
+</html>
